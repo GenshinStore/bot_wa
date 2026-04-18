@@ -27,7 +27,7 @@ function isAllowedSource(source) {
     if (source === TARGET_GROUP_ID) return false;
 
     // PENTING UNTUK SERVER: Lewati newsletter agar tidak freeze
-    if (source.includes('@newsletter')) return false;
+    // if (source.includes('@newsletter')) return false;
 
     return source.includes('@');
 }
