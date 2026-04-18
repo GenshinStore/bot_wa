@@ -13,7 +13,8 @@ const VALID_DOMAINS = /(dana\.id|gopay\.co\.id|shopeepay\.co\.id)/i;
 
 const ENABLE_METADATA_SCAN = true; // Ubah ke false jika ingin nonaktifkan fitur baca metadata grup/saluran
 
-const userCount = parseInt(process.env.USER || process.env.USER_COUNT || '2', 10) || 1; // isi_banyaknya_user
+// const userCount = parseInt(process.env.USER || process.env.USER_COUNT || '2', 10) || 1; // isi_banyaknya_user
+const userCount = parseInt(process.env.USER_COUNT, 10) || 3;
 const forwardedSet = new Set();
 const processingSet = new Set();
 // const forwardedSet = new Map();
