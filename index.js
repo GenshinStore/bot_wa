@@ -1,6 +1,7 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const Jimp = require('jimp');
 const QrCode = require('qrcode-reader');
+const sharp = require('sharp'); 
 const fs = require('fs');
 const path = require('path');
 
@@ -12,7 +13,6 @@ const userCount = parseInt(process.env.USER_COUNT, 10) || 2;
 const forwardedSet = new Set();
 const processingSet = new Set();
 
-// Hanya perlu folder session, tidak perlu folder qr_image
 const SESSION_PATH = path.join(__dirname, 'wa_sessions');
 if (!fs.existsSync(SESSION_PATH)) fs.mkdirSync(SESSION_PATH, { recursive: true });
 
@@ -23,8 +23,6 @@ function getMessageSource(msg) {
 function isAllowedSource(source) {
     if (!source) return false;
     if (source === TARGET_GROUP_ID) return false;
-    
-    // Semua sumber diizinkan (Grup, Pribadi, dan Channel/Saluran)
     return source.includes('@');
 }
 
@@ -70,14 +68,61 @@ async function sendOnce(client, text, label, sourceId = null) {
         return false;
     } finally {
         processingSet.delete(normalizedKey);
-        
-        // Membersihkan cache agar RAM server tidak penuh jika jalan berbulan-bulan
         if (forwardedSet.size > 5000) {
             const firstItem = forwardedSet.keys().next().value;
             forwardedSet.delete(firstItem);
         }
     }
 }
+
+// ============================================================================
+// FUNGSI PEMBACA QR KHUSUS STIKER & GAMBAR 
+// ============================================================================
+async function normalizeImageForOCR(buffer) {
+    try {
+        return await sharp(buffer)
+            .flatten({ background: { r: 255, g: 255, b: 255 } }) 
+            .png()
+            .toBuffer();
+    } catch (err) {
+        return buffer;
+    }
+}
+
+function decodeQrFromImage(image) {
+    return new Promise((resolve) => {
+        const qr = new QrCode();
+        qr.callback = (err, value) => {
+            if (err || !value) return resolve(null);
+            resolve(value.result);
+        };
+        qr.decode(image.bitmap);
+    });
+}
+
+async function detectQR(buffer) {
+    try {
+        const normalized = await normalizeImageForOCR(buffer);
+        const image = await Jimp.read(normalized);
+
+        let result = await decodeQrFromImage(image);
+        if (result) return result;
+
+        const variants = [
+            image.clone().greyscale().contrast(0.5).threshold({ max: 128 }),
+            image.clone().resize(image.bitmap.width * 0.8, Jimp.AUTO).greyscale().contrast(0.4)
+        ];
+
+        for (const variant of variants) {
+            result = await decodeQrFromImage(variant);
+            if (result) return result;
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+// ============================================================================
 
 async function scanTextForLinks(client, text, label, sourceId = null) {
     if (!containsPotentialTarget(text)) return;
@@ -95,47 +140,34 @@ async function handleMessage(client, msg) {
     const source = getMessageSource(msg);
     if (!isAllowedSource(source)) return;
 
-    // 1. Deteksi link pada pesan teks (Termasuk dari Saluran/Channel)
     if (msg.body) {
         await scanTextForLinks(client, msg.body, 'Link', source);
     }
 
-    // 2. Deteksi QR pada Gambar
     if (msg.hasMedia && msg.type !== 'sticker') {
         try {
             const media = await msg.downloadMedia();
-            if (!media || !media.data) return;
-
-            if (media.mimetype && media.mimetype.startsWith('image')) {
+            if (media && media.data && media.mimetype && media.mimetype.startsWith('image')) {
                 const buffer = Buffer.from(media.data, 'base64');
-                const image = await Jimp.read(buffer);
-                const qr = new QrCode();
-
-                qr.callback = async (err, value) => {
-                    if (!err && value && VALID_DOMAINS.test(value.result)) {
-                        await sendOnce(client, value.result, 'Gambar QR', source);
-                    }
-                };
-                qr.decode(image.bitmap);
+                const qrData = await detectQR(buffer); 
+                
+                if (qrData && VALID_DOMAINS.test(qrData)) {
+                    await sendOnce(client, qrData, 'Gambar QR', source);
+                }
             }
         } catch (err) { }
     }
 
-    // 3. Deteksi QR pada Stiker
     if (msg.type === 'sticker' && msg.hasMedia) {
         try {
             const media = await msg.downloadMedia();
-            if (media && media.data && media.mimetype.startsWith('image')) {
+            if (media && media.data && media.mimetype && media.mimetype.startsWith('image')) {
                 const buffer = Buffer.from(media.data, 'base64');
-                const image = await Jimp.read(buffer);
-                const qr = new QrCode();
-
-                qr.callback = async (err, value) => {
-                    if (!err && value && VALID_DOMAINS.test(value.result)) {
-                        await sendOnce(client, value.result, 'Stiker QR', source);
-                    }
-                };
-                qr.decode(image.bitmap);
+                const qrData = await detectQR(buffer); 
+                
+                if (qrData && VALID_DOMAINS.test(qrData)) {
+                    await sendOnce(client, qrData, 'Stiker QR', source);
+                }
             }
         } catch (err) { }
     }
@@ -159,7 +191,9 @@ function createClientInstance(index) {
         }
     });
 
-    // ======= BAGIAN QR YANG SUDAH DIPERBAIKI =======
+    // Variabel untuk menyimpan memori deskripsi grup terakhir
+    client.chatLastDesc = new Map();
+
     client.on('qr', (qr) => {
         console.log(`\n======================================================`);
         console.log(`🟢 ADA QR BARU UNTUK BOT ${index + 1}`);
@@ -172,12 +206,51 @@ function createClientInstance(index) {
         console.log(`✅ Bot ${index + 1} siap dan terhubung!`);
     });
 
+    // ============================================================================
+    // DETEKSI PERUBAHAN DESKRIPSI GRUP SAJA
+    // ============================================================================
+    client.on('group_update', async (notification) => {
+        try {
+            const chat = await notification.getChat();
+            if (!chat || !chat.isGroup) return; // Hanya eksekusi jika ini grup
+
+            const chatId = chat.id._serialized;
+            const currentDesc = chat.description || '';
+            const lastDesc = client.chatLastDesc.get(chatId) || '';
+
+            // Jika bot baru tahu deskripsi grup ini, simpan saja dulu ke memori
+            if (!client.chatLastDesc.has(chatId)) {
+                client.chatLastDesc.set(chatId, currentDesc);
+                return;
+            }
+
+            // Jika deskripsi grup benar-benar berubah, baru kita scan isinya
+            if (currentDesc !== lastDesc) {
+                client.chatLastDesc.set(chatId, currentDesc);
+                
+                // Gunakan fitur scanTextForLinks yang sudah canggih
+                await scanTextForLinks(
+                    client, 
+                    currentDesc, 
+                    'Deskripsi Grup', 
+                    chatId
+                );
+            }
+        } catch (err) {
+            // silent error
+        }
+    });
+    // ============================================================================
+
     client.on('message', async msg => {
         try {
+            const currentTimestamp = Math.floor(Date.now() / 1000);
+            if (msg.timestamp < currentTimestamp - 60) {
+                return; 
+            }
             await handleMessage(client, msg);
         } catch (err) {
-            // Error dari channel biasanya muncul di sini, tapi bot tidak akan mati
-            // console.log('Error aman:', err.message);
+            // silent error
         }
     });
 
