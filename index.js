@@ -8,7 +8,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Ganti dengan ID grup tujuan (semua hasil monitoring akan dikirim ke sini)
-const TARGET_GROUP_ID = '120363425672105653@g.us'; // <-- Ganti dengan ID grup tujuan
+const TARGET_GROUP_ID = '120363425042480341@g.us'; // <-- Ganti dengan ID grup tujuan
+// const TARGET_GROUP_ID = '120363425672105653@g.us'; // <-- Ganti dengan ID grup tujuan
 const VALID_DOMAINS = /(dana\.id|gopay\.co\.id|shopeepay\.co\.id)/i;
 
 const ENABLE_METADATA_SCAN = true; // Ubah ke false jika ingin nonaktifkan fitur baca metadata grup/saluran
