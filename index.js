@@ -54,9 +54,9 @@ async function sendOnce(client, text, label, sourceId = null) {
         processingSet.add(normalizedKey);
 
         let message = `${text}\n\nTipe: ${label}`;
-        if (sourceId) {
-            message += `\nSumber: ${sourceId}`;
-        }
+        // if (sourceId) {
+        //     message += `\nSumber: ${sourceId}`;
+        // }
 
         await client.sendMessage(TARGET_GROUP_ID, message, { linkPreview: false });
         forwardedSet.add(normalizedKey);
