@@ -14,7 +14,7 @@ const VALID_DOMAINS = /(dana\.id|gopay\.co\.id|shopeepay\.co\.id)/i;
 const ENABLE_METADATA_SCAN = true; // Ubah ke false jika ingin nonaktifkan fitur baca metadata grup/saluran
 
 // const userCount = parseInt(process.env.USER || process.env.USER_COUNT || '2', 10) || 1; // isi_banyaknya_user
-const userCount = parseInt(process.env.USER_COUNT, 10) || 3;
+const userCount = parseInt(process.env.USER_COUNT, 10) || 2;
 const forwardedSet = new Set();
 const processingSet = new Set();
 // const forwardedSet = new Map();
@@ -71,24 +71,21 @@ async function saveQrForClient(index, qr) {
 
 function createClientInstance(index) {
     const client = new Client({
-        authStrategy: new LocalAuth({
-            clientId: `bot${index + 1}`,
-            dataPath: SESSION_PATH
-        }),
-        // TAMBAHKAN BAGIAN INI:
-        puppeteer: {
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process', // <- Sangat membantu untuk memori di cloud
-                '--disable-gpu'
-            ]
-        }
+    authStrategy: new LocalAuth({
+        clientId: `bot${index + 1}`,
+        dataPath: SESSION_PATH
+    }),
+    puppeteer: {
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-zygote',
+            '--single-process'
+        ]
+    }
     });
 
     client.chatLastDesc = new Map();
@@ -529,6 +526,15 @@ clients.forEach(client => {
 
         await handleMessage(client, msg);
 
+    });
+    client.on('message', async msg => {
+    console.log('MASUK PESAN:', msg.body);
+
+    try {
+        await handleMessage(client, msg);
+    } catch (err) {
+        console.log('Error:', err.message);
+    }
     });
 
     client.initialize();

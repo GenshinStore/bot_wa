@@ -2,3 +2,5 @@ node_modules
 wa_sessions
 qr_codes
 .env
+test.js
+.wwebjs_cache
