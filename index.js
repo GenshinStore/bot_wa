@@ -1,22 +1,20 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 const Jimp = require('jimp');
 const QrCode = require('qrcode-reader');
 const fs = require('fs');
 const path = require('path');
 
 // Ganti dengan ID grup tujuan
-const TARGET_GROUP_ID = '120363425042480341@g.us';
+const TARGET_GROUP_ID = '120363425042480341@g.us'; 
 const VALID_DOMAINS = /(dana\.id|gopay\.co\.id|shopeepay\.co\.id)/i;
 
 const userCount = parseInt(process.env.USER_COUNT, 10) || 2;
 const forwardedSet = new Set();
 const processingSet = new Set();
 
+// Hanya perlu folder session, tidak perlu folder qr_image
 const SESSION_PATH = path.join(__dirname, 'wa_sessions');
-const QR_IMAGE_DIR = path.join(__dirname, 'qr_codes');
 if (!fs.existsSync(SESSION_PATH)) fs.mkdirSync(SESSION_PATH, { recursive: true });
-if (!fs.existsSync(QR_IMAGE_DIR)) fs.mkdirSync(QR_IMAGE_DIR, { recursive: true });
 
 function getMessageSource(msg) {
     return msg.from || (msg.id && msg.id.remote) || msg.to || '';
@@ -25,10 +23,8 @@ function getMessageSource(msg) {
 function isAllowedSource(source) {
     if (!source) return false;
     if (source === TARGET_GROUP_ID) return false;
-
-    // PENTING UNTUK SERVER: Lewati newsletter agar tidak freeze
-    // if (source.includes('@newsletter')) return false;
-
+    
+    // Semua sumber diizinkan (Grup, Pribadi, dan Channel/Saluran)
     return source.includes('@');
 }
 
@@ -74,8 +70,8 @@ async function sendOnce(client, text, label, sourceId = null) {
         return false;
     } finally {
         processingSet.delete(normalizedKey);
-
-        // Opsional: Agar RAM server tidak penuh jika bot menyala berbulan-bulan, batasi ukuran cache
+        
+        // Membersihkan cache agar RAM server tidak penuh jika jalan berbulan-bulan
         if (forwardedSet.size > 5000) {
             const firstItem = forwardedSet.keys().next().value;
             forwardedSet.delete(firstItem);
@@ -99,7 +95,7 @@ async function handleMessage(client, msg) {
     const source = getMessageSource(msg);
     if (!isAllowedSource(source)) return;
 
-    // 1. Deteksi link teks
+    // 1. Deteksi link pada pesan teks (Termasuk dari Saluran/Channel)
     if (msg.body) {
         await scanTextForLinks(client, msg.body, 'Link', source);
     }
@@ -159,25 +155,29 @@ function createClientInstance(index) {
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
                 '--no-zygote'
-                // HAPUS '--single-process' AGAR TIDAK CRASH DI SERVER
             ]
         }
     });
 
+    // ======= BAGIAN QR YANG SUDAH DIPERBAIKI =======
     client.on('qr', (qr) => {
-        qrcode.generate(qr, { small: true });
-        console.log(`Scan QR bot ${index + 1} dengan WhatsApp`);
+        console.log(`\n======================================================`);
+        console.log(`🟢 ADA QR BARU UNTUK BOT ${index + 1}`);
+        console.log(`Klik atau Copy-Paste link di bawah ini ke browser Anda:`);
+        console.log(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`);
+        console.log(`======================================================\n`);
     });
 
     client.on('ready', () => {
-        console.log(`Bot ${index + 1} siap dan terhubung!`);
+        console.log(`✅ Bot ${index + 1} siap dan terhubung!`);
     });
 
     client.on('message', async msg => {
         try {
             await handleMessage(client, msg);
         } catch (err) {
-            console.log('Error aman:', err.message);
+            // Error dari channel biasanya muncul di sini, tapi bot tidak akan mati
+            // console.log('Error aman:', err.message);
         }
     });
 
