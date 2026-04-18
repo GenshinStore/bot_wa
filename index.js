@@ -1,12 +1,12 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const Jimp = require('jimp');
 const QrCode = require('qrcode-reader');
-const sharp = require('sharp'); 
+const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
 // Ganti dengan ID grup tujuan
-const TARGET_GROUP_ID = '120363425042480341@g.us'; 
+const TARGET_GROUP_ID = '120363425042480341@g.us';
 const VALID_DOMAINS = /(dana\.id|gopay\.co\.id|shopeepay\.co\.id)/i;
 
 const userCount = parseInt(process.env.USER_COUNT, 10) || 2;
@@ -81,7 +81,7 @@ async function sendOnce(client, text, label, sourceId = null) {
 async function normalizeImageForOCR(buffer) {
     try {
         return await sharp(buffer)
-            .flatten({ background: { r: 255, g: 255, b: 255 } }) 
+            .flatten({ background: { r: 255, g: 255, b: 255 } })
             .png()
             .toBuffer();
     } catch (err) {
@@ -149,8 +149,8 @@ async function handleMessage(client, msg) {
             const media = await msg.downloadMedia();
             if (media && media.data && media.mimetype && media.mimetype.startsWith('image')) {
                 const buffer = Buffer.from(media.data, 'base64');
-                const qrData = await detectQR(buffer); 
-                
+                const qrData = await detectQR(buffer);
+
                 if (qrData && VALID_DOMAINS.test(qrData)) {
                     await sendOnce(client, qrData, 'Gambar QR', source);
                 }
@@ -163,8 +163,8 @@ async function handleMessage(client, msg) {
             const media = await msg.downloadMedia();
             if (media && media.data && media.mimetype && media.mimetype.startsWith('image')) {
                 const buffer = Buffer.from(media.data, 'base64');
-                const qrData = await detectQR(buffer); 
-                
+                const qrData = await detectQR(buffer);
+
                 if (qrData && VALID_DOMAINS.test(qrData)) {
                     await sendOnce(client, qrData, 'Stiker QR', source);
                 }
@@ -207,34 +207,28 @@ function createClientInstance(index) {
     });
 
     // ============================================================================
-    // DETEKSI PERUBAHAN DESKRIPSI GRUP SAJA
+    // DETEKSI PERUBAHAN DESKRIPSI GRUP (VERSI LEBIH AKURAT)
     // ============================================================================
     client.on('group_update', async (notification) => {
         try {
-            const chat = await notification.getChat();
-            if (!chat || !chat.isGroup) return; // Hanya eksekusi jika ini grup
+            // Hanya proses jika notifikasi ini adalah aktivitas mengubah deskripsi
+            if (notification.type === 'description') {
+                const chat = await notification.getChat();
+                if (!chat) return;
 
-            const chatId = chat.id._serialized;
-            const currentDesc = chat.description || '';
-            const lastDesc = client.chatLastDesc.get(chatId) || '';
+                const chatId = chat.id._serialized;
 
-            // Jika bot baru tahu deskripsi grup ini, simpan saja dulu ke memori
-            if (!client.chatLastDesc.has(chatId)) {
-                client.chatLastDesc.set(chatId, currentDesc);
-                return;
-            }
+                // Ambil teks deskripsi yang baru diubah (dari body notifikasi atau properti chat)
+                const newDescription = notification.body || chat.description || '';
 
-            // Jika deskripsi grup benar-benar berubah, baru kita scan isinya
-            if (currentDesc !== lastDesc) {
-                client.chatLastDesc.set(chatId, currentDesc);
-                
-                // Gunakan fitur scanTextForLinks yang sudah canggih
-                await scanTextForLinks(
-                    client, 
-                    currentDesc, 
-                    'Deskripsi Grup', 
-                    chatId
-                );
+                if (newDescription) {
+                    await scanTextForLinks(
+                        client,
+                        newDescription,
+                        'Deskripsi Grup',
+                        chatId
+                    );
+                }
             }
         } catch (err) {
             // silent error
@@ -246,7 +240,7 @@ function createClientInstance(index) {
         try {
             const currentTimestamp = Math.floor(Date.now() / 1000);
             if (msg.timestamp < currentTimestamp - 60) {
-                return; 
+                return;
             }
             await handleMessage(client, msg);
         } catch (err) {
