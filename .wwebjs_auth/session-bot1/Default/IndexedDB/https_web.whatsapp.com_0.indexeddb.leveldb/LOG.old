@@ -1,0 +1,66 @@
+2026/04/15-19:45:47.630 4bf4 Creating DB D:\Toko\Produk\Jasa Koding\p48\wa_bot\.wwebjs_auth\session-bot1\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb since it was missing.
+2026/04/15-19:45:47.643 4bf4 Reusing MANIFEST D:\Toko\Produk\Jasa Koding\p48\wa_bot\.wwebjs_auth\session-bot1\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/15-19:47:23.699 4bf4 Level-0 table #5: started
+2026/04/15-19:47:23.727 4bf4 Level-0 table #5: 1038910 bytes OK
+2026/04/15-19:47:23.728 4bf4 Delete type=0 #3
+2026/04/15-19:47:26.961 4bf4 Level-0 table #7: started
+2026/04/15-19:47:26.991 4bf4 Level-0 table #7: 1162819 bytes OK
+2026/04/15-19:47:26.993 4bf4 Delete type=0 #4
+2026/04/15-19:47:26.995 4bf4 Compacting 1@1 + 1@2 files
+2026/04/15-19:47:27.044 4bf4 Generated table #8@1: 23959 keys, 1132695 bytes
+2026/04/15-19:47:27.045 4bf4 Compacted 1@1 + 1@2 files => 1132695 bytes
+2026/04/15-19:47:27.046 4bf4 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/04/15-19:47:28.163 4620 Level-0 table #10: started
+2026/04/15-19:47:28.189 4620 Level-0 table #10: 1044746 bytes OK
+2026/04/15-19:47:28.190 4620 Delete type=2 #5
+2026/04/15-19:47:28.191 4620 Delete type=0 #6
+2026/04/15-19:47:28.191 4620 Delete type=2 #7
+2026/04/15-19:47:28.195 4620 Compacting 1@1 + 1@2 files
+2026/04/15-19:47:28.256 4620 Generated table #11@1: 35020 keys, 1613286 bytes
+2026/04/15-19:47:28.256 4620 Compacted 1@1 + 1@2 files => 1613286 bytes
+2026/04/15-19:47:28.258 4620 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/04/15-19:47:28.692 4bf4 Level-0 table #13: started
+2026/04/15-19:47:28.719 4bf4 Level-0 table #13: 1063321 bytes OK
+2026/04/15-19:47:28.721 4bf4 Delete type=2 #8
+2026/04/15-19:47:28.721 4bf4 Delete type=0 #9
+2026/04/15-19:47:28.721 4bf4 Delete type=2 #10
+2026/04/15-19:47:28.733 4bf4 Compacting 1@1 + 1@2 files
+2026/04/15-19:47:28.798 4bf4 Generated table #14@1: 54753 keys, 2218591 bytes
+2026/04/15-19:47:28.805 4bf4 Generated table #15@1: 2404 keys, 115691 bytes
+2026/04/15-19:47:28.805 4bf4 Compacted 1@1 + 1@2 files => 2334282 bytes
+2026/04/15-19:47:28.806 4bf4 compacted to: files[ 0 0 2 0 0 0 0 ]
+2026/04/15-19:47:29.280 4bf4 Level-0 table #17: started
+2026/04/15-19:47:29.302 4bf4 Level-0 table #17: 1108655 bytes OK
+2026/04/15-19:47:29.304 4bf4 Delete type=2 #11
+2026/04/15-19:47:29.304 4bf4 Delete type=0 #12
+2026/04/15-19:47:29.304 4bf4 Delete type=2 #13
+2026/04/15-19:47:29.307 4bf4 Compacting 1@1 + 1@2 files
+2026/04/15-19:47:29.366 4bf4 Generated table #18@1: 55388 keys, 2222050 bytes
+2026/04/15-19:47:29.383 4bf4 Generated table #19@1: 14783 keys, 627914 bytes
+2026/04/15-19:47:29.383 4bf4 Compacted 1@1 + 1@2 files => 2849964 bytes
+2026/04/15-19:47:29.384 4bf4 compacted to: files[ 0 0 3 0 0 0 0 ]
+2026/04/15-19:47:29.918 4bf4 Level-0 table #21: started
+2026/04/15-19:47:29.938 4bf4 Level-0 table #21: 961969 bytes OK
+2026/04/15-19:47:29.940 4bf4 Delete type=2 #14
+2026/04/15-19:47:29.940 4bf4 Delete type=0 #16
+2026/04/15-19:47:29.940 4bf4 Delete type=2 #17
+2026/04/15-19:47:29.945 4bf4 Compacting 1@1 + 3@2 files
+2026/04/15-19:47:30.029 4bf4 Generated table #22@1: 46367 keys, 2208767 bytes
+2026/04/15-19:47:30.036 4bf4 Generated table #23@1: 4360 keys, 151470 bytes
+2026/04/15-19:47:30.036 4bf4 Compacted 1@1 + 3@2 files => 2360237 bytes
+2026/04/15-19:47:30.037 4bf4 compacted to: files[ 0 0 2 0 0 0 0 ]
+2026/04/15-19:47:31.450 4bf4 Level-0 table #25: started
+2026/04/15-19:47:31.476 4bf4 Level-0 table #25: 1069321 bytes OK
+2026/04/15-19:47:31.477 4bf4 Delete type=2 #15
+2026/04/15-19:47:31.477 4bf4 Delete type=2 #18
+2026/04/15-19:47:31.477 4bf4 Delete type=2 #19
+2026/04/15-19:47:31.478 4bf4 Delete type=0 #20
+2026/04/15-19:47:31.478 4bf4 Delete type=2 #21
+2026/04/15-19:47:31.722 295c Compacting 1@1 + 2@2 files
+2026/04/15-19:47:31.795 295c Generated table #26@1: 40662 keys, 2202130 bytes
+2026/04/15-19:47:31.809 295c Generated table #27@1: 17902 keys, 658605 bytes
+2026/04/15-19:47:31.809 295c Compacted 1@1 + 2@2 files => 2860735 bytes
+2026/04/15-19:47:31.810 295c compacted to: files[ 0 0 2 0 0 0 0 ]
+2026/04/15-19:47:31.810 295c Delete type=2 #22
+2026/04/15-19:47:31.810 295c Delete type=2 #23
+2026/04/15-19:47:31.810 295c Delete type=2 #25

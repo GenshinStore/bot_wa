@@ -1,0 +1,23 @@
+2026/04/15-15:27:00.925 50b4 Reusing MANIFEST D:\Toko\Produk\Jasa Koding\p48\wa_bot\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/15-15:27:00.925 50b4 Recovering log #288
+2026/04/15-15:27:00.996 50b4 Reusing old log D:\Toko\Produk\Jasa Koding\p48\wa_bot\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000288.log 
+2026/04/15-15:30:26.439 41ac Level-0 table #297: started
+2026/04/15-15:30:26.460 41ac Level-0 table #297: 1253622 bytes OK
+2026/04/15-15:30:26.462 41ac Delete type=0 #288
+2026/04/15-15:30:36.377 50b4 Compacting 1@1 + 5@2 files
+2026/04/15-15:30:36.473 50b4 Generated table #298@1: 76776 keys, 2220733 bytes
+2026/04/15-15:30:36.571 50b4 Generated table #299@1: 62011 keys, 2237103 bytes
+2026/04/15-15:30:36.623 50b4 Generated table #300@1: 14475 keys, 2163499 bytes
+2026/04/15-15:30:36.665 50b4 Generated table #301@1: 14369 keys, 2190466 bytes
+2026/04/15-15:30:36.680 50b4 Generated table #302@1: 14882 keys, 806078 bytes
+2026/04/15-15:30:36.680 50b4 Compacted 1@1 + 5@2 files => 9617879 bytes
+2026/04/15-15:30:36.681 50b4 compacted to: files[ 0 0 5 0 0 0 0 ]
+2026/04/15-15:30:36.681 50b4 Delete type=2 #290
+2026/04/15-15:30:36.681 50b4 Delete type=2 #291
+2026/04/15-15:30:36.681 50b4 Delete type=2 #292
+2026/04/15-15:30:36.681 50b4 Delete type=2 #293
+2026/04/15-15:30:36.681 50b4 Delete type=2 #294
+2026/04/15-15:30:36.682 50b4 Delete type=2 #297
+2026/04/15-15:51:44.504 41ac Level-0 table #304: started
+2026/04/15-15:51:44.521 41ac Level-0 table #304: 1203582 bytes OK
+2026/04/15-15:51:44.522 41ac Delete type=0 #296

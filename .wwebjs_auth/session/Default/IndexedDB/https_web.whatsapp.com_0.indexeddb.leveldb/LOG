@@ -1,0 +1,34 @@
+2026/04/15-15:52:07.675 110c Reusing MANIFEST D:\Toko\Produk\Jasa Koding\p48\wa_bot\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/15-15:52:07.676 110c Recovering log #303
+2026/04/15-15:52:07.676 110c Reusing old log D:\Toko\Produk\Jasa Koding\p48\wa_bot\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000303.log 
+2026/04/15-15:52:08.362 110c Compacting 1@1 + 5@2 files
+2026/04/15-15:52:08.430 110c Generated table #306@1: 76655 keys, 2219210 bytes
+2026/04/15-15:52:08.500 110c Generated table #307@1: 62734 keys, 2239217 bytes
+2026/04/15-15:52:08.533 110c Generated table #308@1: 15583 keys, 2172285 bytes
+2026/04/15-15:52:08.601 110c Generated table #309@1: 13347 keys, 2188361 bytes
+2026/04/15-15:52:08.644 110c Generated table #310@1: 16088 keys, 879768 bytes
+2026/04/15-15:52:08.644 110c Compacted 1@1 + 5@2 files => 9698841 bytes
+2026/04/15-15:52:08.646 110c compacted to: files[ 0 0 5 0 0 0 0 ]
+2026/04/15-15:52:08.647 110c Delete type=2 #298
+2026/04/15-15:52:08.647 110c Delete type=2 #299
+2026/04/15-15:52:08.647 110c Delete type=2 #300
+2026/04/15-15:52:08.647 110c Delete type=2 #301
+2026/04/15-15:52:08.647 110c Delete type=2 #302
+2026/04/15-15:52:08.647 110c Delete type=2 #304
+2026/04/15-15:59:19.059 110c Level-0 table #312: started
+2026/04/15-15:59:19.103 110c Level-0 table #312: 1225878 bytes OK
+2026/04/15-15:59:19.105 110c Delete type=0 #303
+2026/04/15-15:59:32.151 3d6c Compacting 1@1 + 5@2 files
+2026/04/15-15:59:32.217 3d6c Generated table #313@1: 76256 keys, 2218760 bytes
+2026/04/15-15:59:32.295 3d6c Generated table #314@1: 63655 keys, 2239916 bytes
+2026/04/15-15:59:32.340 3d6c Generated table #315@1: 20375 keys, 2172681 bytes
+2026/04/15-15:59:32.388 3d6c Generated table #316@1: 11942 keys, 2181973 bytes
+2026/04/15-15:59:32.416 3d6c Generated table #317@1: 17860 keys, 1080849 bytes
+2026/04/15-15:59:32.416 3d6c Compacted 1@1 + 5@2 files => 9894179 bytes
+2026/04/15-15:59:32.417 3d6c compacted to: files[ 0 0 5 0 0 0 0 ]
+2026/04/15-15:59:32.418 3d6c Delete type=2 #306
+2026/04/15-15:59:32.418 3d6c Delete type=2 #307
+2026/04/15-15:59:32.418 3d6c Delete type=2 #308
+2026/04/15-15:59:32.418 3d6c Delete type=2 #309
+2026/04/15-15:59:32.418 3d6c Delete type=2 #310
+2026/04/15-15:59:32.418 3d6c Delete type=2 #312
