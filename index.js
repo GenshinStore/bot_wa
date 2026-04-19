@@ -201,37 +201,37 @@ function createClientInstance(index) {
     });
 
     client.chatLastDesc = new Map();
-    
+
     // Tanda pengenal apakah bot ini sudah sukses login
     client.isReady = false;
 
     // ============================================================================
-    // SISTEM PENGIRIMAN QR CODE PINTAR
+    // SISTEM PENGIRIMAN QR CODE PINTAR (VERSI ANTI GAGAL)
     // ============================================================================
     client.on('qr', async (qr) => {
         // Cari apakah ada bot lain yang sudah "Ready" di dalam array clients
         const readyClient = clients.find(c => c.isReady);
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
 
         if (readyClient) {
-            console.log(`🔄 Meminjam Bot Aktif untuk mengirim QR Bot ${index + 1} ke Grup...`);
+            console.log(`🔄 Meminjam Bot Aktif untuk mengirim Notifikasi QR Bot ${index + 1} ke Grup...`);
             try {
-                // Konversi URL API QR Server menjadi objek gambar yang bisa dikirim WA
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
-                const media = await MessageMedia.fromUrl(qrUrl);
-                
-                await readyClient.sendMessage(TARGET_GROUP_ID, media, {
-                    caption: `🟢 *SCAN QR BARU*\n\nIni adalah Barcode untuk mengaktifkan *Bot ${index + 1}*.\nSilakan siapkan HP Anda dan scan gambar ini.`
-                });
-                console.log(`✅ Gambar QR Bot ${index + 1} berhasil dikirim ke Grup.`);
+                // SOLUSI: Kirim pesan teks berisi link. Sangat ringan dan lolos blokir!
+                const pesan = `🟢 *PERMINTAAN LOGIN BOT ${index + 1}*\n\nBot ini membutuhkan akses. Silakan klik link di bawah ini untuk menampilkan QR Code Anda:\n\n🔗 ${qrUrl}\n\n_(Pesan ini akan otomatis terkirim ulang setiap 20 detik selama belum di-scan)_`;
+
+                // linkPreview: true agar WA berusaha memunculkan gambar kotaknya secara otomatis
+                await readyClient.sendMessage(TARGET_GROUP_ID, pesan, { linkPreview: true });
+                console.log(`✅ Link QR Bot ${index + 1} berhasil dikirim ke Grup.`);
             } catch (err) {
-                console.log(`⚠️ Gagal mengirim QR Bot ${index + 1} ke grup. Dialihkan ke Console...`);
+                console.log(`⚠️ Gagal mengirim QR ke grup karena error: ${err.message}`);
                 printQrToConsole(index, qr);
             }
         } else {
-            // Jika belum ada satu pun bot yang terhubung, munculkan di console seperti biasa
+            // Jika belum ada satu pun bot yang terhubung
             printQrToConsole(index, qr);
         }
     });
+    // ============================================================================
 
     client.on('ready', () => {
         client.isReady = true; // Tandai bot siap bekerja!
