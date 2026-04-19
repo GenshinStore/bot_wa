@@ -7,8 +7,8 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-// const TARGET_GROUP_ID = '120363425672105653@g.us';
-const TARGET_GROUP_ID = '120363425042480341@g.us';
+const TARGET_GROUP_ID = '120363425672105653@g.us';
+// const TARGET_GROUP_ID = '120363425042480341@g.us';
 const VALID_DOMAINS = /(dana\.id|gopay\.co\.id|shopeepay\.co\.id)/i;
 
 const ENABLE_METADATA_SCAN = true;

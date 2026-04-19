@@ -249,17 +249,23 @@ function createClientInstance(index) {
 
     client.on('message', async msg => {
         try {
+            // KODE TAMBAHAN UNTUK CEK ID GRUP
+            if (msg.body === '!cekid') {
+                const chat = await msg.getChat();
+                if (chat.isGroup) {
+                    console.log(`ID Grup "${chat.name}" adalah: ${chat.id._serialized}`);
+                    await msg.reply(`ID Grup ini: ${chat.id._serialized}`);
+                } else {
+                    await msg.reply(`ID Chat Pribadi ini: ${chat.id._serialized}`);
+                }
+                return; // Hentikan proses agar tidak perlu di-scan link-nya
+            }
+
             const currentTimestamp = Math.floor(Date.now() / 1000);
             if (msg.timestamp < currentTimestamp - 60) {
                 return;
             }
             await handleMessage(client, msg);
-            // log ID grup
-            const source = getMessageSource(msg);
-            if (source.endsWith('@g.us')) {
-                console.log('ID Grup:', source);
-            }
-
         } catch (err) { }
     });
 
