@@ -198,7 +198,7 @@ function createClientInstance(index) {
                 '--disable-gpu',
                 '--no-zygote',
                 '--no-first-run',
-                '--single-process' // Aman digunakan jika memori besar dan untuk stabilitas Chromium
+                // '--single-process' // Aman digunakan jika memori besar dan untuk stabilitas Chromium
             ]
         }
     });
@@ -273,8 +273,9 @@ async function startAllClients() {
     for (let i = 0; i < clients.length; i++) {
         console.log(`[SYSTEM] Menyalakan Bot ${i + 1}...`);
         clients[i].initialize();
-        // Beri jeda 8 detik sebelum menyalakan bot berikutnya agar CPU server bisa bernapas
-        await new Promise(resolve => setTimeout(resolve, 8000));
+        
+        // Beri jeda 25 detik agar bot sebelumnya bernapas dan selesai loading
+        await new Promise(resolve => setTimeout(resolve, 25000));
     }
 }
 startAllClients();
