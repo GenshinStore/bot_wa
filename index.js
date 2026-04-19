@@ -44,15 +44,15 @@ function containsPotentialTarget(text) {
     );
 }
 
-async function sendOnce(client, text, label, sourceId = null) {
+async function sendOnce(client, text, label) {
     const normalizedKey = text.trim().toLowerCase();
 
-    if (forwardedSet.has(normalizedKey)) return false;
-    if (processingSet.has(normalizedKey)) return false;
+    if (forwardedSet.has(normalizedKey) || processingSet.has(normalizedKey)) {
+        return false;
+    }
 
     try {
         processingSet.add(normalizedKey);
-
         let message = `${text}\n\nTipe: ${label}`;
 
         await client.sendMessage(TARGET_GROUP_ID, message, { linkPreview: false });
@@ -65,15 +65,16 @@ async function sendOnce(client, text, label, sourceId = null) {
         return false;
     } finally {
         processingSet.delete(normalizedKey);
+
+        // OPTIMASI: Clear memori dengan cepat dibanding mendelete satu per satu
         if (forwardedSet.size > 5000) {
-            const firstItem = forwardedSet.keys().next().value;
-            forwardedSet.delete(firstItem);
+            forwardedSet.clear();
         }
     }
 }
 
 // ============================================================================
-// FUNGSI PEMBACA QR KHUSUS STIKER & GAMBAR 
+// FUNGSI PEMBACA QR KHUSUS STIKER & GAMBAR (Dioptimalkan)
 // ============================================================================
 async function normalizeImageForOCR(buffer) {
     try {
@@ -121,14 +122,14 @@ async function detectQR(buffer) {
 }
 // ============================================================================
 
-async function scanTextForLinks(client, text, label, sourceId = null) {
+async function scanTextForLinks(client, text, label) {
     if (!containsPotentialTarget(text)) return;
     const urls = extractUrls(text);
     if (!urls.length) return;
 
     for (const url of urls) {
         if (VALID_DOMAINS.test(url)) {
-            await sendOnce(client, url, label, sourceId);
+            await sendOnce(client, url, label);
         }
     }
 }
@@ -138,7 +139,7 @@ async function handleMessage(client, msg) {
     if (!isAllowedSource(source)) return;
 
     if (msg.body) {
-        await scanTextForLinks(client, msg.body, 'Link', source);
+        await scanTextForLinks(client, msg.body, 'Link');
     }
 
     if (msg.hasMedia && msg.type !== 'sticker') {
@@ -149,7 +150,7 @@ async function handleMessage(client, msg) {
                 const qrData = await detectQR(buffer);
 
                 if (qrData && VALID_DOMAINS.test(qrData)) {
-                    await sendOnce(client, qrData, 'Gambar QR', source);
+                    await sendOnce(client, qrData, 'Gambar QR');
                 }
             }
         } catch (err) { }
@@ -163,23 +164,21 @@ async function handleMessage(client, msg) {
                 const qrData = await detectQR(buffer);
 
                 if (qrData && VALID_DOMAINS.test(qrData)) {
-                    await sendOnce(client, qrData, 'Stiker QR', source);
+                    await sendOnce(client, qrData, 'Stiker QR');
                 }
             }
         } catch (err) { }
     }
 }
 
-// Fungsi Bantuan untuk menampilkan link QR di Terminal (Fallback)
 function printQrToConsole(index, qr) {
     console.log(`\n======================================================`);
     console.log(`🟢 ADA QR BARU UNTUK BOT ${index + 1}`);
-    console.log(`Klik atau Copy-Paste link di bawah ini ke browser Anda:`);
+    console.log(`Klik link di bawah ini ke browser Anda:`);
     console.log(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`);
     console.log(`======================================================\n`);
 }
 
-// Deklarasi array clients di luar agar bisa diakses antar bot
 const clients = [];
 
 function createClientInstance(index) {
@@ -190,58 +189,51 @@ function createClientInstance(index) {
         }),
         puppeteer: {
             headless: true,
+            // OPTIMASI: Flag Puppeteer paling ringan untuk Server Cloud
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
                 '--disable-gpu',
-                '--no-zygote'
+                '--no-zygote',
+                '--no-first-run',
+                '--single-process' // Aman digunakan jika memori besar dan untuk stabilitas Chromium
             ]
         }
     });
 
-    client.chatLastDesc = new Map();
-
-    // Tanda pengenal apakah bot ini sudah sukses login
     client.isReady = false;
 
-    // ============================================================================
-    // SISTEM PENGIRIMAN QR CODE PINTAR (VERSI ANTI GAGAL)
-    // ============================================================================
     client.on('qr', async (qr) => {
-        // Cari apakah ada bot lain yang sudah "Ready" di dalam array clients
         const readyClient = clients.find(c => c.isReady);
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
 
         if (readyClient) {
-            console.log(`🔄 Meminjam Bot Aktif untuk mengirim Notifikasi QR Bot ${index + 1} ke Grup...`);
+            console.log(`🔄 Mengirim Notifikasi QR Bot ${index + 1} ke Grup...`);
             try {
-                // SOLUSI: Kirim pesan teks berisi link. Sangat ringan dan lolos blokir!
-                const pesan = `🟢 *PERMINTAAN LOGIN BOT ${index + 1}*\n\nBot ini membutuhkan akses. Silakan klik link di bawah ini untuk menampilkan QR Code Anda:\n\n🔗 ${qrUrl}\n\n_(Pesan ini akan otomatis terkirim ulang setiap 20 detik selama belum di-scan)_`;
-
-                // linkPreview: true agar WA berusaha memunculkan gambar kotaknya secara otomatis
+                const pesan = `🟢 *PERMINTAAN LOGIN BOT ${index + 1}*\n\nSilakan klik link di bawah ini untuk menampilkan QR Code Anda:\n\n🔗 ${qrUrl}\n\n_(Pesan ini otomatis terkirim ulang setiap 20 detik)_`;
                 await readyClient.sendMessage(TARGET_GROUP_ID, pesan, { linkPreview: true });
-                console.log(`✅ Link QR Bot ${index + 1} berhasil dikirim ke Grup.`);
+                console.log(`✅ Link QR Bot ${index + 1} terkirim.`);
             } catch (err) {
-                console.log(`⚠️ Gagal mengirim QR ke grup karena error: ${err.message}`);
                 printQrToConsole(index, qr);
             }
         } else {
-            // Jika belum ada satu pun bot yang terhubung
             printQrToConsole(index, qr);
         }
     });
-    // ============================================================================
 
     client.on('ready', () => {
-        client.isReady = true; // Tandai bot siap bekerja!
+        client.isReady = true;
         console.log(`✅ Bot ${index + 1} siap dan terhubung!`);
     });
 
-    client.on('disconnected', () => {
-        client.isReady = false; // Copot tanda jika terputus
+    client.on('disconnected', (reason) => {
+        client.isReady = false;
+        console.log(`❌ Bot ${index + 1} terputus! Alasan:`, reason);
+        console.log(`🔄 Restart server otomatis memulihkan koneksi...`);
+        process.exit(1);
     });
-    // ============================================================================
 
     client.on('group_update', async (notification) => {
         try {
@@ -253,12 +245,7 @@ function createClientInstance(index) {
                 const newDescription = notification.body || chat.description || '';
 
                 if (newDescription) {
-                    await scanTextForLinks(
-                        client,
-                        newDescription,
-                        'Deskripsi Grup',
-                        chatId
-                    );
+                    await scanTextForLinks(client, newDescription, 'Deskripsi Grup');
                 }
             }
         } catch (err) { }
@@ -267,9 +254,7 @@ function createClientInstance(index) {
     client.on('message', async msg => {
         try {
             const currentTimestamp = Math.floor(Date.now() / 1000);
-            if (msg.timestamp < currentTimestamp - 60) {
-                return;
-            }
+            if (msg.timestamp < currentTimestamp - 60) return;
             await handleMessage(client, msg);
         } catch (err) { }
     });
@@ -277,13 +262,22 @@ function createClientInstance(index) {
     return client;
 }
 
-// Inisialisasi bot dan masukkan ke array secara berurutan
+// 1. Masukkan semua instansi bot ke dalam array
 for (let i = 0; i < userCount; i++) {
     clients.push(createClientInstance(i));
 }
 
-// Jalankan semua bot
-clients.forEach(client => client.initialize());
+// 2. OPTIMASI: Staggered Start (Jalankan bot secara bergantian)
+// Ini adalah kunci agar Bot 2 dan Bot 3 tidak mati (freeze) karena berebut CPU saat menyala
+async function startAllClients() {
+    for (let i = 0; i < clients.length; i++) {
+        console.log(`[SYSTEM] Menyalakan Bot ${i + 1}...`);
+        clients[i].initialize();
+        // Beri jeda 8 detik sebelum menyalakan bot berikutnya agar CPU server bisa bernapas
+        await new Promise(resolve => setTimeout(resolve, 8000));
+    }
+}
+startAllClients();
 
 // ============================================================================
 // SISTEM AUTO-RESTART PADA WAKTU SPESIFIK (12 MALAM & 6 PAGI)
@@ -295,16 +289,17 @@ setInterval(() => {
     const minitLokal = new Date(waktuLokal).getMinutes();
 
     if ((jamLokal === 0 && minitLokal === 0) || (jamLokal === 6 && minitLokal === 0)) {
-        console.log(`⏳ Waktu Restart Tiba (${jamLokal}:00). Memulakan semula sistem...`);
+        console.log(`⏳ Waktu Restart Tiba (${jamLokal}:00). Memulihkan sistem...`);
         process.exit(1);
     }
 }, 60000);
 
 process.on('unhandledRejection', error => {
-    console.error('⚠️ Error tidak terjangka:', error.message);
+    // Abaikan error jaringan kecil yang tidak merusak sistem
+    // console.error('⚠️ Peringatan:', error.message);
 });
 
 process.on('uncaughtException', error => {
     console.error('⚠️ Sistem crash:', error.message);
+    process.exit(1); // Paksa restart jika terjadi error fatal
 });
-// ============================================================================
