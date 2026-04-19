@@ -54,9 +54,6 @@ async function sendOnce(client, text, label, sourceId = null) {
         processingSet.add(normalizedKey);
 
         let message = `${text}\n\nTipe: ${label}`;
-        // if (sourceId) {
-        //     message += `\nSumber: ${sourceId}`;
-        // }
 
         await client.sendMessage(TARGET_GROUP_ID, message, { linkPreview: false });
         forwardedSet.add(normalizedKey);
@@ -173,6 +170,18 @@ async function handleMessage(client, msg) {
     }
 }
 
+// Fungsi Bantuan untuk menampilkan link QR di Terminal (Fallback)
+function printQrToConsole(index, qr) {
+    console.log(`\n======================================================`);
+    console.log(`🟢 ADA QR BARU UNTUK BOT ${index + 1}`);
+    console.log(`Klik atau Copy-Paste link di bawah ini ke browser Anda:`);
+    console.log(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`);
+    console.log(`======================================================\n`);
+}
+
+// Deklarasi array clients di luar agar bisa diakses antar bot
+const clients = [];
+
 function createClientInstance(index) {
     const client = new Client({
         authStrategy: new LocalAuth({
@@ -191,34 +200,56 @@ function createClientInstance(index) {
         }
     });
 
-    // Variabel untuk menyimpan memori deskripsi grup terakhir
     client.chatLastDesc = new Map();
+    
+    // Tanda pengenal apakah bot ini sudah sukses login
+    client.isReady = false;
 
-    client.on('qr', (qr) => {
-        console.log(`\n======================================================`);
-        console.log(`🟢 ADA QR BARU UNTUK BOT ${index + 1}`);
-        console.log(`Klik atau Copy-Paste link di bawah ini ke browser Anda:`);
-        console.log(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`);
-        console.log(`======================================================\n`);
+    // ============================================================================
+    // SISTEM PENGIRIMAN QR CODE PINTAR
+    // ============================================================================
+    client.on('qr', async (qr) => {
+        // Cari apakah ada bot lain yang sudah "Ready" di dalam array clients
+        const readyClient = clients.find(c => c.isReady);
+
+        if (readyClient) {
+            console.log(`🔄 Meminjam Bot Aktif untuk mengirim QR Bot ${index + 1} ke Grup...`);
+            try {
+                // Konversi URL API QR Server menjadi objek gambar yang bisa dikirim WA
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+                const media = await MessageMedia.fromUrl(qrUrl);
+                
+                await readyClient.sendMessage(TARGET_GROUP_ID, media, {
+                    caption: `🟢 *SCAN QR BARU*\n\nIni adalah Barcode untuk mengaktifkan *Bot ${index + 1}*.\nSilakan siapkan HP Anda dan scan gambar ini.`
+                });
+                console.log(`✅ Gambar QR Bot ${index + 1} berhasil dikirim ke Grup.`);
+            } catch (err) {
+                console.log(`⚠️ Gagal mengirim QR Bot ${index + 1} ke grup. Dialihkan ke Console...`);
+                printQrToConsole(index, qr);
+            }
+        } else {
+            // Jika belum ada satu pun bot yang terhubung, munculkan di console seperti biasa
+            printQrToConsole(index, qr);
+        }
     });
 
     client.on('ready', () => {
+        client.isReady = true; // Tandai bot siap bekerja!
         console.log(`✅ Bot ${index + 1} siap dan terhubung!`);
     });
 
+    client.on('disconnected', () => {
+        client.isReady = false; // Copot tanda jika terputus
+    });
     // ============================================================================
-    // DETEKSI PERUBAHAN DESKRIPSI GRUP (VERSI LEBIH AKURAT)
-    // ============================================================================
+
     client.on('group_update', async (notification) => {
         try {
-            // Hanya proses jika notifikasi ini adalah aktivitas mengubah deskripsi
             if (notification.type === 'description') {
                 const chat = await notification.getChat();
                 if (!chat) return;
 
                 const chatId = chat.id._serialized;
-
-                // Ambil teks deskripsi yang baru diubah (dari body notifikasi atau properti chat)
                 const newDescription = notification.body || chat.description || '';
 
                 if (newDescription) {
@@ -230,11 +261,8 @@ function createClientInstance(index) {
                     );
                 }
             }
-        } catch (err) {
-            // silent error
-        }
+        } catch (err) { }
     });
-    // ============================================================================
 
     client.on('message', async msg => {
         try {
@@ -243,39 +271,35 @@ function createClientInstance(index) {
                 return;
             }
             await handleMessage(client, msg);
-        } catch (err) {
-            // silent error
-        }
+        } catch (err) { }
     });
 
     return client;
 }
 
-const clients = Array.from({ length: userCount }, (_, i) => createClientInstance(i));
+// Inisialisasi bot dan masukkan ke array secara berurutan
+for (let i = 0; i < userCount; i++) {
+    clients.push(createClientInstance(i));
+}
+
+// Jalankan semua bot
 clients.forEach(client => client.initialize());
 
 // ============================================================================
 // SISTEM AUTO-RESTART PADA WAKTU SPESIFIK (12 MALAM & 6 PAGI)
 // ============================================================================
-
-// Semak waktu setiap 60 saat (1 minit)
 setInterval(() => {
     const sekarang = new Date();
-
-    // Tetapkan zon waktu ke Asia/Jakarta jika pelayan menggunakan waktu UTC
-    // Railway biasanya menggunakan UTC, jadi kita selaraskan ke waktu tempatan
     const waktuLokal = sekarang.toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
     const jamLokal = new Date(waktuLokal).getHours();
     const minitLokal = new Date(waktuLokal).getMinutes();
 
-    // Trigger restart tepat pada jam 00:00 (12 Malam) dan 06:00 (6 Pagi)
     if ((jamLokal === 0 && minitLokal === 0) || (jamLokal === 6 && minitLokal === 0)) {
         console.log(`⏳ Waktu Restart Tiba (${jamLokal}:00). Memulakan semula sistem...`);
         process.exit(1);
     }
 }, 60000);
 
-// Mencegah bot mati diam-diam (Anti-Crash)
 process.on('unhandledRejection', error => {
     console.error('⚠️ Error tidak terjangka:', error.message);
 });
