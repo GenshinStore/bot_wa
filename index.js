@@ -253,3 +253,34 @@ function createClientInstance(index) {
 
 const clients = Array.from({ length: userCount }, (_, i) => createClientInstance(i));
 clients.forEach(client => client.initialize());
+
+// ============================================================================
+// SISTEM AUTO-RESTART PADA WAKTU SPESIFIK (12 MALAM & 6 PAGI)
+// ============================================================================
+
+// Semak waktu setiap 60 saat (1 minit)
+setInterval(() => {
+    const sekarang = new Date();
+
+    // Tetapkan zon waktu ke Asia/Jakarta jika pelayan menggunakan waktu UTC
+    // Railway biasanya menggunakan UTC, jadi kita selaraskan ke waktu tempatan
+    const waktuLokal = sekarang.toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
+    const jamLokal = new Date(waktuLokal).getHours();
+    const minitLokal = new Date(waktuLokal).getMinutes();
+
+    // Trigger restart tepat pada jam 00:00 (12 Malam) dan 06:00 (6 Pagi)
+    if ((jamLokal === 0 && minitLokal === 0) || (jamLokal === 6 && minitLokal === 0)) {
+        console.log(`⏳ Waktu Restart Tiba (${jamLokal}:00). Memulakan semula sistem...`);
+        process.exit(1);
+    }
+}, 60000);
+
+// Mencegah bot mati diam-diam (Anti-Crash)
+process.on('unhandledRejection', error => {
+    console.error('⚠️ Error tidak terjangka:', error.message);
+});
+
+process.on('uncaughtException', error => {
+    console.error('⚠️ Sistem crash:', error.message);
+});
+// ============================================================================
