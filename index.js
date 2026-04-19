@@ -5,7 +5,6 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-// Ganti dengan ID grup tujuan
 const TARGET_GROUP_ID = '120363425042480341@g.us';
 const VALID_DOMAINS = /(dana\.id|gopay\.co\.id|shopeepay\.co\.id)/i;
 
@@ -44,15 +43,15 @@ function containsPotentialTarget(text) {
     );
 }
 
-async function sendOnce(client, text, label) {
+async function sendOnce(client, text, label, sourceId = null) {
     const normalizedKey = text.trim().toLowerCase();
 
-    if (forwardedSet.has(normalizedKey) || processingSet.has(normalizedKey)) {
-        return false;
-    }
+    if (forwardedSet.has(normalizedKey)) return false;
+    if (processingSet.has(normalizedKey)) return false;
 
     try {
         processingSet.add(normalizedKey);
+
         let message = `${text}\n\nTipe: ${label}`;
 
         await client.sendMessage(TARGET_GROUP_ID, message, { linkPreview: false });
@@ -65,17 +64,13 @@ async function sendOnce(client, text, label) {
         return false;
     } finally {
         processingSet.delete(normalizedKey);
-
-        // OPTIMASI: Clear memori dengan cepat dibanding mendelete satu per satu
         if (forwardedSet.size > 5000) {
-            forwardedSet.clear();
+            const firstItem = forwardedSet.keys().next().value;
+            forwardedSet.delete(firstItem);
         }
     }
 }
 
-// ============================================================================
-// FUNGSI PEMBACA QR KHUSUS STIKER & GAMBAR (Dioptimalkan)
-// ============================================================================
 async function normalizeImageForOCR(buffer) {
     try {
         return await sharp(buffer)
@@ -120,16 +115,15 @@ async function detectQR(buffer) {
         return null;
     }
 }
-// ============================================================================
 
-async function scanTextForLinks(client, text, label) {
+async function scanTextForLinks(client, text, label, sourceId = null) {
     if (!containsPotentialTarget(text)) return;
     const urls = extractUrls(text);
     if (!urls.length) return;
 
     for (const url of urls) {
         if (VALID_DOMAINS.test(url)) {
-            await sendOnce(client, url, label);
+            await sendOnce(client, url, label, sourceId);
         }
     }
 }
@@ -139,7 +133,7 @@ async function handleMessage(client, msg) {
     if (!isAllowedSource(source)) return;
 
     if (msg.body) {
-        await scanTextForLinks(client, msg.body, 'Link');
+        await scanTextForLinks(client, msg.body, 'Link', source);
     }
 
     if (msg.hasMedia && msg.type !== 'sticker') {
@@ -150,7 +144,7 @@ async function handleMessage(client, msg) {
                 const qrData = await detectQR(buffer);
 
                 if (qrData && VALID_DOMAINS.test(qrData)) {
-                    await sendOnce(client, qrData, 'Gambar QR');
+                    await sendOnce(client, qrData, 'Gambar QR', source);
                 }
             }
         } catch (err) { }
@@ -164,7 +158,7 @@ async function handleMessage(client, msg) {
                 const qrData = await detectQR(buffer);
 
                 if (qrData && VALID_DOMAINS.test(qrData)) {
-                    await sendOnce(client, qrData, 'Stiker QR');
+                    await sendOnce(client, qrData, 'Stiker QR', source);
                 }
             }
         } catch (err) { }
@@ -172,11 +166,9 @@ async function handleMessage(client, msg) {
 }
 
 function printQrToConsole(index, qr) {
-    console.log(`\n======================================================`);
-    console.log(`🟢 ADA QR BARU UNTUK BOT ${index + 1}`);
-    console.log(`Klik link di bawah ini ke browser Anda:`);
+    console.log(`ADA QR BARU UNTUK BOT ${index + 1}`);
+    console.log(`Klik atau Copy-Paste link di bawah ini ke browser Anda:`);
     console.log(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`);
-    console.log(`======================================================\n`);
 }
 
 const clients = [];
@@ -189,20 +181,17 @@ function createClientInstance(index) {
         }),
         puppeteer: {
             headless: true,
-            // OPTIMASI: Flag Puppeteer paling ringan untuk Server Cloud
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
                 '--disable-gpu',
-                '--no-zygote',
-                '--no-first-run',
-                // '--single-process' // Aman digunakan jika memori besar dan untuk stabilitas Chromium
+                '--no-zygote'
             ]
         }
     });
 
+    client.chatLastDesc = new Map();
     client.isReady = false;
 
     client.on('qr', async (qr) => {
@@ -210,12 +199,14 @@ function createClientInstance(index) {
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
 
         if (readyClient) {
-            console.log(`🔄 Mengirim Notifikasi QR Bot ${index + 1} ke Grup...`);
+            console.log(`Meminjam Bot Aktif untuk mengirim Notifikasi QR Bot ${index + 1} ke Grup...`);
             try {
-                const pesan = `🟢 *PERMINTAAN LOGIN BOT ${index + 1}*\n\nSilakan klik link di bawah ini untuk menampilkan QR Code Anda:\n\n🔗 ${qrUrl}\n\n_(Pesan ini otomatis terkirim ulang setiap 20 detik)_`;
+                const pesan = `*PERMINTAAN LOGIN BOT ${index + 1}*\n\nBot ini membutuhkan akses. Silakan klik link di bawah ini untuk menampilkan QR Code Anda:\n\n${qrUrl}\n\n_(Pesan ini akan otomatis terkirim ulang setiap 20 detik selama belum di-scan)_`;
+
                 await readyClient.sendMessage(TARGET_GROUP_ID, pesan, { linkPreview: true });
-                console.log(`✅ Link QR Bot ${index + 1} terkirim.`);
+                console.log(`Link QR Bot ${index + 1} berhasil dikirim ke Grup.`);
             } catch (err) {
+                console.log(`Gagal mengirim QR ke grup karena error: ${err.message}`);
                 printQrToConsole(index, qr);
             }
         } else {
@@ -225,14 +216,14 @@ function createClientInstance(index) {
 
     client.on('ready', () => {
         client.isReady = true;
-        console.log(`✅ Bot ${index + 1} siap dan terhubung!`);
+        console.log(`Bot ${index + 1} siap dan terhubung!`);
     });
 
     client.on('disconnected', (reason) => {
         client.isReady = false;
-        console.log(`❌ Bot ${index + 1} terputus! Alasan:`, reason);
-        console.log(`🔄 Restart server otomatis memulihkan koneksi...`);
-        process.exit(1);
+        console.log(`Bot ${index + 1} terputus. Alasan: ${reason}`);
+        console.log(`Memulai ulang sistem untuk mengaktifkan kembali bot...`);
+        process.exit(1); 
     });
 
     client.on('group_update', async (notification) => {
@@ -245,7 +236,12 @@ function createClientInstance(index) {
                 const newDescription = notification.body || chat.description || '';
 
                 if (newDescription) {
-                    await scanTextForLinks(client, newDescription, 'Deskripsi Grup');
+                    await scanTextForLinks(
+                        client,
+                        newDescription,
+                        'Deskripsi Grup',
+                        chatId
+                    );
                 }
             }
         } catch (err) { }
@@ -254,35 +250,28 @@ function createClientInstance(index) {
     client.on('message', async msg => {
         try {
             const currentTimestamp = Math.floor(Date.now() / 1000);
-            if (msg.timestamp < currentTimestamp - 60) return;
+            if (msg.timestamp < currentTimestamp - 60) {
+                return;
+            }
             await handleMessage(client, msg);
+            // log ID grup
+            const source = getMessageSource(msg);
+            if (source.endsWith('@g.us')) {
+                console.log('ID Grup:', source);
+            }
+
         } catch (err) { }
     });
 
     return client;
 }
 
-// 1. Masukkan semua instansi bot ke dalam array
 for (let i = 0; i < userCount; i++) {
     clients.push(createClientInstance(i));
 }
 
-// 2. OPTIMASI: Staggered Start (Jalankan bot secara bergantian)
-// Ini adalah kunci agar Bot 2 dan Bot 3 tidak mati (freeze) karena berebut CPU saat menyala
-async function startAllClients() {
-    for (let i = 0; i < clients.length; i++) {
-        console.log(`[SYSTEM] Menyalakan Bot ${i + 1}...`);
-        clients[i].initialize();
-        
-        // Beri jeda 25 detik agar bot sebelumnya bernapas dan selesai loading
-        await new Promise(resolve => setTimeout(resolve, 25000));
-    }
-}
-startAllClients();
+clients.forEach(client => client.initialize());
 
-// ============================================================================
-// SISTEM AUTO-RESTART PADA WAKTU SPESIFIK (12 MALAM & 6 PAGI)
-// ============================================================================
 setInterval(() => {
     const sekarang = new Date();
     const waktuLokal = sekarang.toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
@@ -290,17 +279,16 @@ setInterval(() => {
     const minitLokal = new Date(waktuLokal).getMinutes();
 
     if ((jamLokal === 0 && minitLokal === 0) || (jamLokal === 6 && minitLokal === 0)) {
-        console.log(`⏳ Waktu Restart Tiba (${jamLokal}:00). Memulihkan sistem...`);
+        console.log(`Waktu Restart Tiba (${jamLokal}:00). Memulakan semula sistem...`);
         process.exit(1);
     }
 }, 60000);
 
 process.on('unhandledRejection', error => {
-    // Abaikan error jaringan kecil yang tidak merusak sistem
-    // console.error('⚠️ Peringatan:', error.message);
+    console.error('Error tidak terjangka:', error.message);
 });
 
 process.on('uncaughtException', error => {
-    console.error('⚠️ Sistem crash:', error.message);
-    process.exit(1); // Paksa restart jika terjadi error fatal
+    console.error('Sistem crash:', error.message);
+    process.exit(1);
 });
